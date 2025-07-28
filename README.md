@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🦟 Dengue App - Predicción de Riesgo de Fallecimiento por Dengue
 
-## Getting Started
+Esta aplicación web predice el **riesgo de fallecimiento** en pacientes con diagnóstico de dengue, usando variables clínicas y demográficas. El proyecto está orientado al público general, con una interfaz moderna, responsiva y fácil de entender.
 
-First, run the development server:
+Desarrollado con **Next.js**, **Tailwind CSS** y componentes visuales como gráficas, cards y semáforos animados. Se conecta a un backend en Flask que utiliza un modelo de **Machine Learning** ya entrenado.
+
+---
+
+## 🧠 ¿Qué hace esta app?
+
+- ✅ Recibe datos clínicos y demográficos del usuario.
+- ✅ Calcula el riesgo de fallecimiento por dengue.
+- ✅ Muestra resultados visuales: gráficas, semáforos, recomendaciones.
+- ✅ Permite editar los datos en tiempo real.
+- 📊 Incluye una vista de estadísticas históricas del dengue.
+- ℹ️ Contiene una sección “Acerca de” con orientación para el usuario.
+
+---
+
+## 🚀 Instalación local
+
+### 1. Clona el repositorio
 
 ```bash
+git clone https://github.com/TuUsuario/dengue-app-frontend.git
+cd dengue-app-frontend
+2. Instala las dependencias
+bash
+Copiar
+Editar
+npm install
+3. Ejecuta en modo desarrollo
+bash
+Copiar
+Editar
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+La app estará disponible en: http://localhost:3000
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+🗂️ Estructura del Proyecto
+csharp
+Copiar
+Editar
+dengue-app/
+├── app/                # Páginas del sistema (dashboard, landing, estadísticas, acerca)
+├── components/         # Componentes visuales (cards, gráficas, formularios, semáforo)
+├── lib/                # Funciones auxiliares (API, contexto, helpers)
+├── public/             # Recursos públicos (iconos, imágenes)
+├── styles/             # Estilos globales si se necesitan
+├── README.md           # Guía e info del proyecto
+└── ...
+🛠️ Tecnologías Usadas
+Next.js
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Tailwind CSS
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+ShadCN UI
 
-## Learn More
+Chart.js
 
-To learn more about Next.js, take a look at the following resources:
+Lucide Icons
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Backend con Flask (por separado)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+📸 Capturas (opcional)
+Puedes insertar aquí capturas de pantalla de tu app una vez desplegada.
 
-## Deploy on Vercel
+📦 Despliegue recomendado
+Frontend: Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Backend: Railway o Render
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+👨‍💻 Autor
+Daniel Alejandro Tuz Carrillo
+GitHub: @Pulparindo70
+
+✅ Estado del Proyecto
+ Landing page informativa
+
+ Dashboard visual con predicción
+
+ Gráficas dinámicas (donut, radar, línea)
+
+ Semáforo animado de riesgo
+
+ Recomendaciones personalizadas
+
+ Página de estadísticas
+
+ Página “Acerca de”
+
+ Optimización SEO
+
+ Multilenguaje
+
+ Funcionalidad offline
