@@ -37,3 +37,33 @@ export async function predecirDengue(datos: {
     throw error;
   }
 }
+
+export const API =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+export interface MunicipioResumen {
+  entidad: string;
+  municipio: string;
+  total_casos: number;
+  muertes: number;
+  diabetes: number;
+  hipertension: number;
+  embarazo: number;
+  inmunosupresion: number;
+}
+
+export interface ResumenResponse {
+  municipios: MunicipioResumen[];
+  registros_no_encontrados: unknown[];
+}
+
+export async function getResumen(
+  entidad?: string
+): Promise<ResumenResponse> {
+  const url = entidad
+    ? `${API}/api/resumen?entidad=${encodeURIComponent(entidad)}`
+    : `${API}/api/resumen`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("Error al obtener resumen");
+  return res.json();
+}

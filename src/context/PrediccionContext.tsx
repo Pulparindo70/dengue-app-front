@@ -2,19 +2,15 @@
 
 import { createContext, useContext, useState } from "react";
 
-interface DatosPrediccion {
-  edad: number;
-  sexo: string;
-  tipo_paciente: string;
-  dictamen: string;
-  diabetes: number;
-  hipertension: number;
-  embarazo: number;
-  inmunosupresion: number;
+// Datos capturados del formulario (pueden usarse nombres en mayúsculas para exportar al CSV)
+export interface DatosPrediccion {
+  [clave: string]: string | number;
 }
 
 interface ResultadoPrediccion {
   riesgo: number | null; // 0 = bajo, 1 = alto
+  mensaje?: string;
+  probabilidad?: number | null;
   datos: DatosPrediccion | null;
 }
 

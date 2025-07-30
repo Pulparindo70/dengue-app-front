@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Select,
   SelectTrigger,
@@ -8,6 +8,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import KpiResumen from "@/components/estadisticas/KpiResumen";
 import GraficaBarrasMunicipios from "@/components/estadisticas/GraficaBarrasMunicipios";
 import GraficaComorbilidades from "@/components/estadisticas/GraficaComorbilidades";
@@ -17,116 +18,179 @@ import TablaMunicipios from "@/components/estadisticas/TablaMunicipios";
 import MapaCalorPlaceholder from "@/components/estadisticas/MapaCalorPlaceholder";
 import LineaTiempoPlaceholder from "@/components/estadisticas/LineaTiempoPlaceholder";
 import ComparadorEntidades from "@/components/estadisticas/ComparadorEntidades";
+import { getResumen, MunicipioResumen } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function EstadisticasPage() {
-  const [entidad, setEntidad] = useState("YUCATÁN");
+  const [entidad, setEntidad] = useState<string>("YUCATÁN");
+  const [resumenEntidad, setResumenEntidad] = useState<MunicipioResumen[]>([]);
+  const [resumenNacional, setResumenNacional] = useState<MunicipioResumen[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Datos simulados para Yucatán
-  const resumen = {
-    totalCasos: 5421,
-    totalMuertes: 123,
-    conDiabetes: 432,
-    conHipertension: 511,
-    embarazo: 68,
-    inmuno: 37,
-  };
+  // ─────────────────── Fetch de datos ───────────────────
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([getResumen(entidad), getResumen()])
+      .then(([ent, nac]) => {
+        setResumenEntidad(ent.municipios);
+        setResumenNacional(nac.municipios);
+      })
+      .catch(() => toast.error("No se pudieron cargar las estadísticas"))
+      .finally(() => setLoading(false));
+  }, [entidad]);
 
-  const municipios = {
-    labels: ["Mérida", "Valladolid", "Progreso", "Ticul", "Tizimín"],
-    valores: [56, 21, 18, 15, 13],
-    tabla: [
-      { nombre: "Mérida", casos: 1200, muertes: 56 },
-      { nombre: "Valladolid", casos: 540, muertes: 21 },
-      { nombre: "Progreso", casos: 480, muertes: 18 },
-      { nombre: "Ticul", casos: 370, muertes: 15 },
-      { nombre: "Tizimín", casos: 410, muertes: 13 },
-    ],
-  };
+  // ─────────────────── Agregaciones ───────────────────
+  const totales = useMemo(() => {
+    return resumenEntidad.reduce(
+      (acc, m) => ({
+        totalCasos: acc.totalCasos + m.total_casos,
+        totalMuertes: acc.totalMuertes + m.muertes,
+        conDiabetes: acc.conDiabetes + m.diabetes,
+        conHipertension: acc.conHipertension + m.hipertension,
+        embarazo: acc.embarazo + m.embarazo,
+        inmuno: acc.inmuno + m.inmunosupresion,
+      }),
+      {
+        totalCasos: 0,
+        totalMuertes: 0,
+        conDiabetes: 0,
+        conHipertension: 0,
+        embarazo: 0,
+        inmuno: 0,
+      }
+    );
+  }, [resumenEntidad]);
 
-  const topEntidades = {
-    entidades: ["Veracruz", "Chiapas", "Yucatán", "Oaxaca", "Jalisco"],
-    muertes: [122, 110, 98, 86, 75],
-  };
+  const topMunicipios = useMemo(() => {
+    const sorted = [...resumenEntidad]
+      .sort((a, b) => b.muertes - a.muertes)
+      .slice(0, 5);
+    return {
+      labels: sorted.map((m) => m.municipio),
+      valores: sorted.map((m) => m.muertes),
+      tabla: sorted.map((m) => ({
+        nombre: m.municipio,
+        casos: m.total_casos,
+        muertes: m.muertes,
+      })),
+    } as const;
+  }, [resumenEntidad]);
 
-  const comparador = {
-    entidades: ["Yucatán", "Veracruz"],
-    muertes: [123, 122],
-  };
+  const topEntidades = useMemo(() => {
+    const map = new Map<string, number>();
+    resumenNacional.forEach((m) => {
+      map.set(m.entidad, (map.get(m.entidad) || 0) + m.muertes);
+    });
+    const arr = Array.from(map.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+    return {
+      entidades: arr.map(([e]) => e),
+      muertes: arr.map(([, v]) => v),
+    } as const;
+  }, [resumenNacional]);
 
+  const comparador = useMemo(() => {
+    const rival =
+      topEntidades.entidades.find((e) => e !== entidad) ||
+      topEntidades.entidades[0] || "";
+
+    const muertesEntidadIndex = topEntidades.entidades.indexOf(entidad);
+    const muertesEntidad =
+      muertesEntidadIndex !== -1
+        ? topEntidades.muertes[muertesEntidadIndex]
+        : resumenEntidad.reduce((acc, m) => acc + m.muertes, 0);
+
+    const muertesRivalIndex = topEntidades.entidades.indexOf(rival);
+    const muertesRival =
+      muertesRivalIndex !== -1 ? topEntidades.muertes[muertesRivalIndex] : 0;
+
+    return {
+      entidades: [entidad, rival],
+      muertes: [muertesEntidad, muertesRival],
+    };
+  }, [entidad, topEntidades, resumenEntidad]);
+
+  // ─────────────────── Render ───────────────────
   return (
     <main className="max-w-6xl mx-auto py-10 px-4 space-y-10">
-      <div className="text-center space-y-1">
+      {/* Cabecera */}
+      <header className="text-center space-y-1">
         <h1 className="text-3xl font-bold">Estadísticas del Dengue</h1>
         <p className="text-muted-foreground">
           Visualiza datos históricos por entidad, municipio y comorbilidades.
         </p>
-      </div>
+      </header>
 
       {/* Selector de entidad */}
       <div className="max-w-xs mx-auto">
-        <Select onValueChange={setEntidad} defaultValue={entidad}>
+        <Select onValueChange={setEntidad} value={entidad}>
           <SelectTrigger>
             <SelectValue placeholder="Selecciona una entidad" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="YUCATÁN">Yucatán</SelectItem>
-            <SelectItem value="VERACRUZ">Veracruz</SelectItem>
-            <SelectItem value="CHIAPAS">Chiapas</SelectItem>
+            {Array.from(new Set(resumenNacional.map((m) => m.entidad).concat(entidad)))
+              .sort()
+              .map((ent) => (
+                <SelectItem key={ent} value={ent}>
+                  {ent}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* KPIs */}
-      <KpiResumen
-        totalCasos={resumen.totalCasos}
-        totalMuertes={resumen.totalMuertes}
-        conDiabetes={resumen.conDiabetes}
-        conHipertension={resumen.conHipertension}
-      />
+      {loading ? (
+        <section className="space-y-4">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-80 w-full" />
+        </section>
+      ) : (
+        <>
+          <KpiResumen
+            totalCasos={totales.totalCasos}
+            totalMuertes={totales.totalMuertes}
+            conDiabetes={totales.conDiabetes}
+            conHipertension={totales.conHipertension}
+          />
 
-      {/* Resumen textual */}
-      <ResumenInteligente
-        entidad={entidad}
-        totalCasos={resumen.totalCasos}
-        totalMuertes={resumen.totalMuertes}
-        comorbilidades={{
-          diabetes: resumen.conDiabetes,
-          hipertension: resumen.conHipertension,
-          embarazo: resumen.embarazo,
-          inmuno: resumen.inmuno,
-        }}
-      />
+          <ResumenInteligente
+            entidad={entidad}
+            totalCasos={totales.totalCasos}
+            totalMuertes={totales.totalMuertes}
+            comorbilidades={{
+              diabetes: totales.conDiabetes,
+              hipertension: totales.conHipertension,
+              embarazo: totales.embarazo,
+              inmuno: totales.inmuno,
+            }}
+          />
 
-      {/* Gráficas */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <GraficaBarrasMunicipios
-          labels={municipios.labels}
-          valores={municipios.valores}
-        />
-        <GraficaComorbilidades
-          diabetes={resumen.conDiabetes}
-          hipertension={resumen.conHipertension}
-          embarazo={resumen.embarazo}
-          inmuno={resumen.inmuno}
-        />
-        <GraficaTopEntidades
-          entidades={topEntidades.entidades}
-          muertes={topEntidades.muertes}
-        />
-        <ComparadorEntidades
-          entidades={comparador.entidades}
-          muertes={comparador.muertes}
-        />
-      </section>
+          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <GraficaBarrasMunicipios
+              labels={topMunicipios.labels}
+              valores={topMunicipios.valores}
+            />
+            <GraficaComorbilidades
+              diabetes={totales.conDiabetes}
+              hipertension={totales.conHipertension}
+              embarazo={totales.embarazo}
+              inmuno={totales.inmuno}
+            />
+            <GraficaTopEntidades
+              entidades={topEntidades.entidades}
+              muertes={topEntidades.muertes}
+            />
+            <ComparadorEntidades
+              entidades={comparador.entidades}
+              muertes={comparador.muertes}
+            />
+          </section>
 
-      {/* Visualizaciones futuras */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <MapaCalorPlaceholder />
-        <LineaTiempoPlaceholder />
-      </section>
-
-      {/* Tabla completa */}
-      <TablaMunicipios data={municipios.tabla} />
+          <TablaMunicipios data={topMunicipios.tabla} />
+        </>
+      )}
     </main>
   );
 }

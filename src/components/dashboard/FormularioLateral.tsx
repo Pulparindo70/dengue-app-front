@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import { usePrediccion } from "@/context/PrediccionContext";
 import { toast } from "sonner";
+import { API } from "@/lib/api";
 
 export default function FormularioLateral() {
   const { setResultado, resultado } = usePrediccion();
@@ -56,13 +57,36 @@ export default function FormularioLateral() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validación básica
+    const camposObligatorios = [
+      "edad",
+      "sexo",
+      "tipo_paciente",
+      "dictamen",
+      "diabetes",
+      "hipertension",
+      "embarazo",
+      "inmunosupresion",
+    ];
+
+    const faltantes = camposObligatorios.filter((c) => !formulario[c as keyof typeof formulario]);
+    if (faltantes.length) {
+      toast.error("Por favor completa todos los campos antes de enviar.");
+      return;
+    }
+
+    if (parseInt(formulario.edad) <= 0) {
+      toast.error("La edad debe ser un número mayor que cero.");
+      return;
+    }
+
     const datosTransformados = transformarDatos();
     const csvBlob = generarCSVBlob(datosTransformados);
     const formData = new FormData();
     formData.append("file", csvBlob, "usuario.csv");
 
     try {
-      const response = await fetch("http://localhost:5000/predict?umbral=0.9", {
+      const response = await fetch(`${API}/predict?umbral=0.9`, {
         method: "POST",
         body: formData,
       });
@@ -88,7 +112,7 @@ export default function FormularioLateral() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 bg-white p-4 rounded-xl shadow-md"
+      className="space-y-4 bg-white dark:bg-muted border border-gray-200 dark:border-muted rounded-xl shadow-sm p-4"
     >
       <Label>Edad</Label>
       <Input
@@ -183,15 +207,20 @@ export default function FormularioLateral() {
         <div
           className={`mt-6 p-4 rounded-lg font-semibold text-center ${
             resultado.riesgo === 1
-              ? "bg-red-100 text-red-700"
-              : "bg-green-100 text-green-700"
+              ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100"
+              : "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100"
           }`}
         >
           {resultado.mensaje} <br />
-          Riesgo estimado:{" "}
-          <span className="font-mono">
-            {(resultado.probabilidad * 100).toFixed(2)}%
-          </span>
+
+          {resultado.probabilidad !== null && resultado.probabilidad !== undefined && (
+            <>
+              Riesgo estimado:{" "}
+              <span className="font-mono">
+                {(resultado.probabilidad * 100).toFixed(2)}%
+              </span>
+            </>
+          )}
         </div>
       )}
     </form>
